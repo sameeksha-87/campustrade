@@ -1,14 +1,14 @@
 :root {
-    /* Color Palette - Indigo/Violet Theme */
-    --primary-color: #6366f1;
-    --primary-hover: #4f46e5;
-    --secondary-color: #ec4899;
-    --background-color: #f8fafc;
-    --surface-color: #ffffff;
-    --text-primary: #1e293b;
+    /* Color Palette */
+    --primary-color: #2A62FF;
+    --primary-hover: #1e4bd1;
+    --secondary-color: #2ECC71;
+    --background-color: #F4F6F8;
+    --surface-color: #FFFFFF;
+    --text-primary: #0D1A2B;
     --text-secondary: #64748b;
-    --border-color: #e2e8f0;
-    --success-color: #10b981;
+    --border-color: #D0D4D8;
+    --success-color: #2ECC71;
     --warning-color: #f59e0b;
     --danger-color: #ef4444;
 
@@ -91,12 +91,12 @@ a:hover {
 
 main {
     flex: 1;
-    padding: var(--spacing-xl) 0;
+    padding: 4rem 0;
 }
 
 /* Header */
 header {
-    background-color: var(--surface-color);
+    background-color: var(--primary-color);
     box-shadow: var(--shadow-sm);
     position: sticky;
     top: 0;
@@ -113,7 +113,7 @@ header {
 .logo {
     font-size: 1.5rem;
     font-weight: 800;
-    color: var(--primary-color);
+    color: white;
     letter-spacing: -0.025em;
 }
 
@@ -124,12 +124,12 @@ header {
 }
 
 .nav-link {
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.9);
     font-weight: 500;
 }
 
 .nav-link:hover {
-    color: var(--primary-color);
+    color: white;
 }
 
 /* Buttons */
@@ -165,6 +165,7 @@ header {
 .btn-outline:hover {
     border-color: var(--primary-color);
     color: var(--primary-color);
+    background-color: rgba(42, 98, 255, 0.05);
 }
 
 .btn-danger {

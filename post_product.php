@@ -23,7 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     // Rent details
     $rent_price = !empty($_POST['rent_price']) ? $_POST['rent_price'] : null;
-    $duration = !empty($_POST['duration']) ? $_POST['duration'] : null;
+    $start_date = !empty($_POST['start_date']) ? $_POST['start_date'] : null;
+    $end_date = !empty($_POST['end_date']) ? $_POST['end_date'] : null;
     $terms = trim($_POST['terms']);
 
     if (empty($product_name) || empty($listing_type) || empty($category_id)) {
@@ -37,9 +38,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $product_id = $pdo->lastInsertId();
 
             // Handle Rent/Lend details
-            if ($listing_type == 'rent' || $listing_type == 'lend' || $listing_type == 'sell_rent') {
-                $stmt = $pdo->prepare("INSERT INTO rent_lend_details (product_id, rent_price, duration, terms) VALUES (?, ?, ?, ?)");
-                $stmt->execute([$product_id, $rent_price, $duration, $terms]);
+            if ($listing_type == 'rent' || $listing_type == 'lend') {
+                $stmt = $pdo->prepare("INSERT INTO rent_lend_details (product_id, rent_price, start_date, end_date, terms) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([$product_id, $rent_price, $start_date, $end_date, $terms]);
+            }
+
+            // Notify users interested in this category
+            $stmt = $pdo->prepare("SELECT DISTINCT u.user_id FROM interested i JOIN users u ON i.user_id = u.user_id WHERE i.category_id = ? AND u.user_id != ?");
+            $stmt->execute([$category_id, $seller_id]);
+            $interested_users = $stmt->fetchAll();
+
+            foreach ($interested_users as $interested_user) {
+                $msg = "New item posted in your interested category: " . $product_name;
+                $stmt = $pdo->prepare("INSERT INTO notification (user_id, message, reference_id, type) VALUES (?, ?, ?, 'product')");
+                $stmt->execute([$interested_user['user_id'], $msg, $product_id]);
             }
 
             // Handle File Uploads
@@ -137,7 +149,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <option value="sell">Sell</option>
                         <option value="rent">Rent</option>
                         <option value="lend">Lend (Free Borrow)</option>
-                        <option value="sell_rent">Sell or Rent</option>
                     </select>
                 </div>
 
@@ -155,9 +166,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <input type="number" id="rent_price" name="rent_price" step="0.01">
                         </div>
                         <div class="form-group">
-                            <label for="duration">Max Duration (Days)</label>
-                            <input type="number" id="duration" name="duration">
+                            <label for="start_date">Start Date</label>
+                            <input type="date" id="start_date" name="start_date">
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="end_date">End Date</label>
+                        <input type="date" id="end_date" name="end_date">
                     </div>
                     <div class="form-group">
                         <label for="terms">Terms & Conditions</label>
@@ -180,11 +195,8 @@ function toggleFields() {
     if (type === 'sell') {
         saleFields.style.display = 'block';
         rentFields.style.display = 'none';
-    } else if (type === 'rent' || type === 'lend') {
-        saleFields.style.display = 'none';
-        rentFields.style.display = 'block';
     } else {
-        saleFields.style.display = 'block';
+        saleFields.style.display = 'none';
         rentFields.style.display = 'block';
     }
 }

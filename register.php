@@ -13,6 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if (empty($username) || empty($email) || empty($password)) {
         $error = 'Please fill in all required fields.';
+    } elseif (!str_ends_with(strtolower($email), '@iiitdmj.ac.in')) {
+        $error = 'Only IIIT DMJ email addresses (@iiitdmj.ac.in) are allowed to register.';
     } elseif ($password !== $confirm_password) {
         $error = 'Passwords do not match.';
     } else {
@@ -59,8 +61,8 @@ include 'includes/header.php';
                 </div>
                 
                 <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" required value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
+                    <label for="email">Email Address (IIIT DMJ only)</label>
+                    <input type="email" id="email" name="email" required placeholder="yourname@iiitdmj.ac.in" value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
                 </div>
 
                 <div class="form-group">

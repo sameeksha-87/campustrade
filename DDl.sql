@@ -1,6 +1,7 @@
 CREATE DATABASE IF NOT EXISTS campustrade1;
 USE campustrade1;
 
+-- Users table
 CREATE TABLE IF NOT EXISTS users (
   user_id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(100) NOT NULL,
@@ -9,17 +10,19 @@ CREATE TABLE IF NOT EXISTS users (
   password VARCHAR(255) NOT NULL
 );
 
+-- Category table
 CREATE TABLE IF NOT EXISTS category (
   category_id INT AUTO_INCREMENT PRIMARY KEY,
   category_name VARCHAR(100) NOT NULL UNIQUE
 );
 
+-- Products table
 CREATE TABLE IF NOT EXISTS products (
   product_id INT AUTO_INCREMENT PRIMARY KEY,
   product_name VARCHAR(150) NOT NULL,
   description TEXT,
-  price DECIMAL(10,2),  -- sale price, nullable if not for sale
-  listing_type ENUM('sell', 'rent', 'lend', 'sell_rent') NOT NULL,
+  price DECIMAL(10,2),
+  listing_type ENUM('sell', 'rent', 'lend') NOT NULL,
   status ENUM('available', 'sold', 'borrowed', 'rented', 'unavailable') DEFAULT 'available',
   posted_date DATETIME DEFAULT CURRENT_TIMESTAMP,
   seller_id INT NOT NULL,
@@ -29,6 +32,7 @@ CREATE TABLE IF NOT EXISTS products (
   FOREIGN KEY (category_id) REFERENCES category(category_id)
 );
 
+-- Product images table
 CREATE TABLE IF NOT EXISTS product_images (
   image_id INT AUTO_INCREMENT PRIMARY KEY,
   product_id INT,
@@ -36,17 +40,17 @@ CREATE TABLE IF NOT EXISTS product_images (
   FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE
 );
 
+-- Rent/Lend details table (with manual start and end dates)
 CREATE TABLE IF NOT EXISTS rent_lend_details (
   product_id INT PRIMARY KEY,
   rent_price DECIMAL(10,2),
-  duration INT,                -- number of days
-  terms TEXT,
   start_date DATE,
-  end_date DATE GENERATED ALWAYS AS (DATE_ADD(start_date, INTERVAL duration DAY)) STORED,
+  end_date DATE,
+  terms TEXT,
   FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE
 );
 
-
+-- Interested users table (supports both product and category interest)
 CREATE TABLE IF NOT EXISTS interested (
   interested_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
@@ -59,18 +63,20 @@ CREATE TABLE IF NOT EXISTS interested (
   UNIQUE (user_id, category_id)
 );
 
+-- Notification table
 CREATE TABLE IF NOT EXISTS notification (
   notification_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   message VARCHAR(255) NOT NULL,
-  reference_id INT NOT NULL,       -- ID of product or category triggering the notification
-  type ENUM('product', 'category') NOT NULL,  -- specifies what reference_id refers to
+  reference_id INT NOT NULL,
+  type ENUM('product', 'category') NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   is_read BOOLEAN DEFAULT FALSE,
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- Insert some default categories
+
+-- Insert default categories
 INSERT IGNORE INTO category (category_name) VALUES 
 ('Books'),
 ('Electronics'),
@@ -80,11 +86,4 @@ INSERT IGNORE INTO category (category_name) VALUES
 ('Stationery'),
 ('Other');
 
-CREATE TABLE IF NOT EXISTS password_resets (
-  email VARCHAR(150) NOT NULL,
-  token VARCHAR(255) NOT NULL,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  expires_at DATETIME,
-  INDEX(email),
-  INDEX(token)
-);
+

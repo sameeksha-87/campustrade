@@ -20,7 +20,8 @@ if (session_status() === PHP_SESSION_NONE) {
             <nav class="navbar">
                 <a href="/CampusTrade-1/index.php" class="logo">CampusTrade</a>
                 <div class="nav-links">
-                    <a href="/CampusTrade-1/index.php" class="nav-link">Browse</a>
+                    <a href="/CampusTrade-1/index.php" class="nav-link">Home</a>
+                    <a href="/CampusTrade-1/browse.php" class="nav-link">Browse</a>
                     <?php if (isset($_SESSION['user_id'])): ?>
                         <a href="/CampusTrade-1/post_product.php" class="btn btn-primary">Post Item</a>
                         <a href="/CampusTrade-1/profile.php" class="nav-link">My Profile</a>
@@ -33,4 +34,5 @@ if (session_status() === PHP_SESSION_NONE) {
             </nav>
         </div>
     </header>
+    <br><br><br>
     <main class="container">

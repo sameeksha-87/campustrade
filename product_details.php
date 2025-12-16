@@ -3,7 +3,7 @@ require_once 'config/db_connect.php';
 include 'includes/header.php';
 
 if (!isset($_GET['id'])) {
-    header("Location: index.php");
+    header("Location: browse.php");
     exit;
 }
 
@@ -12,7 +12,7 @@ $product_id = $_GET['id'];
 // Fetch product details
 $stmt = $pdo->prepare("
     SELECT p.*, c.category_name, u.username as seller_name, u.email as seller_email, u.phone as seller_phone,
-    r.rent_price, r.duration, r.terms
+    r.rent_price, r.start_date, r.end_date, r.terms
     FROM products p 
     JOIN users u ON p.seller_id = u.user_id
     LEFT JOIN category c ON p.category_id = c.category_id 
@@ -37,28 +37,50 @@ $images = $stmt->fetchAll(PDO::FETCH_COLUMN);
 $interest_msg = '';
 if (isset($_POST['interested']) && isset($_SESSION['user_id'])) {
     try {
-        $stmt = $pdo->prepare("INSERT INTO interested (user_id, product_id) VALUES (?, ?)");
-        $stmt->execute([$_SESSION['user_id'], $product_id]);
+        // Add debug info
+        $buyer_id = $_SESSION['user_id'];
+        $buyer_name = $_SESSION['username'];
+        $seller_id = $product['seller_id'];
+        $prod_name = $product['product_name'];
         
-        if ($product['status'] == 'available') {
-            // Notify seller immediately if available
-            $msg = "User " . $_SESSION['username'] . " is interested in your item: " . $product['product_name'];
-            $stmt = $pdo->prepare("INSERT INTO notification (user_id, message, reference_id, type) VALUES (?, ?, ?, 'product')");
-            $stmt->execute([$product['seller_id'], $msg, $product_id]);
-            $interest_msg = "<div class='alert alert-success'>Seller has been notified of your interest!</div>";
-        } else {
-            // Just waitlist message for buyer
-            $interest_msg = "<div class='alert alert-success'>You have been added to the waitlist! We will notify you when this item becomes available.</div>";
-        }
-    } catch (PDOException $e) {
-        if ($e->getCode() == 23000) { // Duplicate entry
+        // Insert interest record
+        $stmt = $pdo->prepare("INSERT INTO interested (user_id, product_id) VALUES (?, ?)");
+        $stmt->execute([$buyer_id, $product_id]);
+        
+        // Always notify seller when someone is interested
+        $msg = "User " . $buyer_name . " is interested in your item: " . $prod_name;
+        
+        // DEBUG: Log what we're about to insert
+        error_log("=== NOTIFICATION DEBUG ===");
+        error_log("Buyer ID: " . $buyer_id);
+        error_log("Buyer Name: " . $buyer_name);
+        error_log("Seller ID: " . $seller_id);
+        error_log("Product ID: " . $product_id);
+        error_log("Product Name: " . $prod_name);
+        error_log("Message: " . $msg);
+        
+        $stmt = $pdo->prepare("INSERT INTO notification (user_id, message, reference_id, type) VALUES (?, ?, ?, 'product')");
+        $result = $stmt->execute([$seller_id, $msg, $product_id]);
+        
+        error_log("Notification Insert Result: " . ($result ? 'SUCCESS' : 'FAILED'));
+        error_log("Last Insert ID: " . $pdo->lastInsertId());
+        error_log("=========================");
+        
+        if ($result) {
             if ($product['status'] == 'available') {
-                $interest_msg = "<div class='alert alert-warning'>You have already expressed interest in this item.</div>";
+                $interest_msg = "<div class='alert alert-success'>Seller has been notified of your interest! (Seller ID: $seller_id)</div>";
             } else {
-                $interest_msg = "<div class='alert alert-warning'>You are already on the waitlist for this item.</div>";
+                $interest_msg = "<div class='alert alert-success'>You have been added to the waitlist! The seller has been notified. (Seller ID: $seller_id)</div>";
             }
         } else {
-            $interest_msg = "<div class='alert alert-error'>Error: " . $e->getMessage() . "</div>";
+            $interest_msg = "<div class='alert alert-error'>Failed to notify seller. Please try again.</div>";
+        }
+    } catch (PDOException $e) {
+        error_log("NOTIFICATION ERROR: " . $e->getMessage());
+        if ($e->getCode() == 23000) { // Duplicate entry
+            $interest_msg = "<div class='alert alert-warning'>You have already expressed interest in this item.</div>";
+        } else {
+            $interest_msg = "<div class='alert alert-error'>Error: " . htmlspecialchars($e->getMessage()) . "</div>";
         }
     }
 }
@@ -100,11 +122,14 @@ if (isset($_POST['interested']) && isset($_SESSION['user_id'])) {
                 <h3 style="color: var(--primary-color); margin-bottom: 1rem;">
                     <?php 
                     if ($product['listing_type'] == 'sell') {
-                        echo '$' . number_format($product['price'], 2);
+
+                        echo '₹ ' . number_format($product['price'], 2);
                     } elseif ($product['listing_type'] == 'rent') {
-                        echo '$' . number_format($product['rent_price'], 2) . ' / ' . $product['duration'] . ' days';
-                    } elseif ($product['listing_type'] == 'sell_rent') {
-                        echo 'Buy: $' . number_format($product['price'], 2) . ' <br> Rent: $' . number_format($product['rent_price'], 2);
+                        $rental_info = '₹ ' . number_format($product['rent_price'], 2);
+                        if ($product['start_date'] && $product['end_date']) {
+                            $rental_info .= ' (' . date('M j', strtotime($product['start_date'])) . ' - ' . date('M j, Y', strtotime($product['end_date'])) . ')';
+                        }
+                        echo $rental_info;
                     } else {
                         echo 'Free to Borrow';
                     }
@@ -203,7 +228,13 @@ if (isset($_POST['interested']) && isset($_SESSION['user_id'])) {
                         </form>
                     </div>
                 </div>
-                <a href="#" class="btn btn-outline w-full">Edit Listing Details</a>
+                <div class="flex gap-2">
+                    <a href="#" class="btn btn-outline w-full">Edit Listing Details</a>
+                    <form method="POST" action="delete_product.php" onsubmit="return confirm('Are you sure you want to delete this product?');" style="width: 100%;">
+                        <input type="hidden" name="product_id" value="<?php echo $product['product_id']; ?>">
+                        <button type="submit" class="btn btn-danger w-full" style="background-color: #ef4444; color: white; border: none;">Delete Product</button>
+                    </form>
+                </div>
             <?php endif; ?>
         <?php else: ?>
             <a href="login.php" class="btn btn-primary w-full">Login to Contact Seller</a>

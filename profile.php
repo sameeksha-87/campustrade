@@ -16,9 +16,10 @@ $user = $stmt->fetch();
 
 // Fetch my listings
 $stmt = $pdo->prepare("
-    SELECT p.*, c.category_name 
+    SELECT p.*, c.category_name, r.rent_price, r.duration
     FROM products p 
     LEFT JOIN category c ON p.category_id = c.category_id 
+    LEFT JOIN rent_lend_details r ON p.product_id = r.product_id
     WHERE p.seller_id = ? AND p.is_deleted = FALSE 
     ORDER BY p.posted_date DESC
 ");
@@ -75,7 +76,7 @@ $interested_items = $stmt->fetchAll();
                                 </a>
                             </h3>
                             <p class="card-text">
-                                $<?php echo number_format($item['price'] ?? $item['rent_price'] ?? 0, 2); ?>
+                                ₹<?php echo number_format($item['price'] ?? $item['rent_price'] ?? 0, 2); ?>
                             </p>
                             <div class="flex gap-2">
                                 <a href="product_details.php?id=<?php echo $item['product_id']; ?>" class="btn btn-outline w-full">View</a>
